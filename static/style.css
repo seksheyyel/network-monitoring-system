@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #080b12;
+    color: #e2e8f0;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* ── SCENE ── */
+.scene {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+}
+
+.glow {
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.07) 0%, transparent 65%);
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* ── CARD ── */
+.card {
+    position: relative;
+    width: 100%;
+    max-width: 390px;
+    background: #0e1420;
+    border: 1px solid #1a2540;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.stripe {
+    height: 2px;
+    background: linear-gradient(90deg, #1e40af, #3b82f6, #818cf8);
+}
+
+.body {
+    padding: 2.75rem 2.5rem;
+}
+
+/* ── HEADER ── */
+.header {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.25;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.01em;
+}
+
+h1 em {
+    color: #3b82f6;
+    font-style: normal;
+}
+
+.sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #2d4060;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.25rem;
+}
+
+.icon-box {
+    width: 42px;
+    height: 42px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+/* ── DIVIDER ── */
+.sep {
+    height: 1px;
+    background: #111d30;
+    margin: 2rem 0 1.75rem;
+}
+
+/* ── ERROR ── */
+.err {
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    font-size: 12px;
+    padding: 10px 13px;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── FIELDS ── */
+.field {
+    margin-bottom: 1.15rem;
+}
+
+.field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3a5070;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 7px;
+}
+
+.field input {
+    width: 100%;
+    background: #080b12;
+    border: 1px solid #1a2540;
+    color: #e2e8f0;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    padding: 11px 14px;
+    border-radius: 9px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.field input::placeholder {
+    color: #1e3050;
+    font-size: 13px;
+}
+
+/* ── BUTTON ── */
+.btn {
+    width: 100%;
+    background: #2563eb;
+    border: none;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.01em;
+}
+
+.btn:hover {
+    background: #1d4ed8;
+}
+
+.btn:active {
+    transform: scale(0.99);
+}
+
+.arrow {
+    transition: transform 0.2s;
+}
+
+.btn:hover .arrow {
+    transform: translateX(4px);
+}

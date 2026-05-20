@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Settings — Threat Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-text">Network Monitoring</div>
+                <div class="logo-sub">Network Defense System</div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <span class="nav-icon">⊞</span><span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('alert') }}" class="nav-item">
+                    <span class="nav-icon">⚠</span><span>Alerts</span>
+                </a>
+                <a href="{{ url_for('logs') }}" class="nav-item">
+                    <span class="nav-icon">📋</span><span>Audit Logs</span>
+                </a>
+
+                <a href="{{ url_for('settings') }}" class="nav-item active">
+                    <span class="nav-icon">⚙</span><span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="avatar">{{ user[0] | upper }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ user }}</div>
+                    <div class="user-role">Network Analyst</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">⏻</a>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <div class="page-title">Settings</div>
+                    <div class="page-sub">DETECTION THRESHOLD CONFIGURATION</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-time" id="clock"></div>
+                </div>
+            </div>
+
+            <div class="settings-grid">
+
+                <!-- ── DDoS ── -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-icon">🔴</span>
+                        <span class="settings-card-title">DDoS Attack Detection</span>
+                        <span class="settings-card-badge red">DDoS</span>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label" for="ddos_threshold">Packet Threshold</label>
+                                <input class="field-input" id="ddos_threshold" type="number" min="1" step="1"
+                                    placeholder="1000">
+                                <span class="field-hint">PACKETS BEFORE ALERT TRIGGERS</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="ddos_window">Time Window (s)</label>
+                                <input class="field-input" id="ddos_window" type="number" min="1" step="1"
+                                    placeholder="3">
+                                <span class="field-hint">SECONDS TO COUNT PACKETS IN</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="ddos_cooldown">Cooldown (s)</label>
+                                <input class="field-input" id="ddos_cooldown" type="number" min="1" step="1"
+                                    placeholder="15">
+                                <span class="field-hint">SECONDS BETWEEN REPEAT ALERTS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-card-footer">
+                        <span class="footer-note">CHANGES APPLY IMMEDIATELY TO THE LIVE DETECTOR</span>
+                        <div class="footer-actions">
+                            <button class="btn-reset" data-target="ddos">↺ Reset</button>
+                            <button class="btn-save" data-target="ddos">✓ Save DDoS</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Port Scan ── -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-icon">🟠</span>
+                        <span class="settings-card-title">Port Scan Detection</span>
+                        <span class="settings-card-badge orange">Port Scan</span>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label" for="portscan_threshold">Unique Ports Threshold</label>
+                                <input class="field-input" id="portscan_threshold" type="number" min="1" step="1"
+                                    placeholder="20">
+                                <span class="field-hint">UNIQUE PORTS BEFORE ALERT TRIGGERS</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="portscan_window">Time Window (s)</label>
+                                <input class="field-input" id="portscan_window" type="number" min="1" step="1"
+                                    placeholder="10">
+                                <span class="field-hint">SECONDS TO COUNT PORTS IN</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="portscan_cooldown">Cooldown (s)</label>
+                                <input class="field-input" id="portscan_cooldown" type="number" min="1" step="1"
+                                    placeholder="30">
+                                <span class="field-hint">SECONDS BETWEEN REPEAT ALERTS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-card-footer">
+                        <span class="footer-note">CHANGES APPLY IMMEDIATELY TO THE LIVE DETECTOR</span>
+                        <div class="footer-actions">
+                            <button class="btn-reset" data-target="portscan">↺ Reset</button>
+                            <button class="btn-save" data-target="portscan">✓ Save Port Scan</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── ARP Spoofing ── -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-icon">🟡</span>
+                        <span class="settings-card-title">ARP Spoofing Detection</span>
+                        <span class="settings-card-badge yellow">ARP Spoofing</span>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label" for="arp_threshold">MAC Threshold</label>
+                                <input class="field-input" id="arp_threshold" type="number" min="2" step="1"
+                                    placeholder="3">
+                                <span class="field-hint">UNIQUE MACs PER IP BEFORE ALERT</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="arp_window">Time Window (s)</label>
+                                <input class="field-input" id="arp_window" type="number" min="1" step="1"
+                                    placeholder="30">
+                                <span class="field-hint">SECONDS TO TRACK MAC CHANGES IN</span>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="arp_cooldown">Cooldown (s)</label>
+                                <input class="field-input" id="arp_cooldown" type="number" min="1" step="1"
+                                    placeholder="15">
+                                <span class="field-hint">SECONDS BETWEEN REPEAT ALERTS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-card-footer">
+                        <span class="footer-note">CHANGES APPLY IMMEDIATELY TO THE LIVE DETECTOR</span>
+                        <div class="footer-actions">
+                            <button class="btn-reset" data-target="arp">↺ Reset</button>
+                            <button class="btn-save" data-target="arp">✓ Save ARP</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /settings-grid -->
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        /* ── Clock ── */
+        function updateClock() {
+            document.getElementById('clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        /* ── Defaults (match Python class defaults) ── */
+        const DEFAULTS = {
+            ddos: { threshold: 1000, window: 3, cooldown: 15 },
+            portscan: { threshold: 20, window: 10, cooldown: 30 },
+            arp: { threshold: 3, window: 30, cooldown: 15 },
+        };
+
+        /* ── Toast helper ── */
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' toast-error' : '');
+            void t.offsetWidth;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        /* ── Load current thresholds from server ── */
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/settings/thresholds');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // DDoS
+                document.getElementById('ddos_threshold').value = data.ddos.threshold;
+                document.getElementById('ddos_window').value = data.ddos.window;
+                document.getElementById('ddos_cooldown').value = data.ddos.cooldown;
+
+                // Port Scan
+                document.getElementById('portscan_threshold').value = data.portscan.threshold;
+                document.getElementById('portscan_window').value = data.portscan.window;
+                document.getElementById('portscan_cooldown').value = data.portscan.cooldown;
+
+                // ARP
+                document.getElementById('arp_threshold').value = data.arp.threshold;
+                document.getElementById('arp_window').value = data.arp.window;
+                document.getElementById('arp_cooldown').value = data.arp.cooldown;
+            } catch (e) {
+                console.error('Failed to load settings', e);
+            }
+        }
+
+        /* ── Save ── */
+        async function saveSection(target) {
+            let payload = {};
+
+            if (target === 'ddos') {
+                payload = {
+                    threshold: parseInt(document.getElementById('ddos_threshold').value),
+                    window: parseInt(document.getElementById('ddos_window').value),
+                    cooldown: parseInt(document.getElementById('ddos_cooldown').value),
+                };
+            } else if (target === 'portscan') {
+                payload = {
+                    threshold: parseInt(document.getElementById('portscan_threshold').value),
+                    window: parseInt(document.getElementById('portscan_window').value),
+                    cooldown: parseInt(document.getElementById('portscan_cooldown').value),
+                };
+            } else if (target === 'arp') {
+                payload = {
+                    threshold: parseInt(document.getElementById('arp_threshold').value),
+                    window: parseInt(document.getElementById('arp_window').value),
+                    cooldown: parseInt(document.getElementById('arp_cooldown').value),
+                };
+            }
+
+            // Validate
+            for (const v of Object.values(payload)) {
+                if (isNaN(v) || v < 1) {
+                    showToast('⚠ All values must be positive numbers.', true);
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch(`/api/settings/thresholds/${target}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(`✓ ${target.toUpperCase()} thresholds saved.`);
+                } else {
+                    showToast(data.message || 'Save failed.', true);
+                }
+            } catch {
+                showToast('⚠ Network error. Could not save.', true);
+            }
+        }
+
+        /* ── Reset ── */
+        function resetSection(target) {
+            const d = DEFAULTS[target];
+            if (target === 'ddos') {
+                document.getElementById('ddos_threshold').value = d.threshold;
+                document.getElementById('ddos_window').value = d.window;
+                document.getElementById('ddos_cooldown').value = d.cooldown;
+            } else if (target === 'portscan') {
+                document.getElementById('portscan_threshold').value = d.threshold;
+                document.getElementById('portscan_window').value = d.window;
+                document.getElementById('portscan_cooldown').value = d.cooldown;
+            } else if (target === 'arp') {
+                document.getElementById('arp_threshold').value = d.threshold;
+                document.getElementById('arp_window').value = d.window;
+                document.getElementById('arp_cooldown').value = d.cooldown;
+            }
+            showToast(`↺ ${target.toUpperCase()} values reset to defaults.`);
+        }
+
+        /* ── Button listeners ── */
+        document.querySelectorAll('.btn-save').forEach(btn => {
+            btn.addEventListener('click', () => saveSection(btn.dataset.target));
+        });
+        document.querySelectorAll('.btn-reset').forEach(btn => {
+            btn.addEventListener('click', () => resetSection(btn.dataset.target));
+        });
+
+        /* ── Init ── */
+        loadSettings();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Login - ThreatMon</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="scene">
+        <div class="grid"></div>
+        <div class="glow"></div>
+        <div class="card">
+            <div class="stripe"></div>
+            <div class="body">
+
+                <div class="header">
+                    <h1>Threat <em>Monitoring</em><br>System</h1>
+                    <p class="sub">secure access portal</p>
+                    <div class="icon-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="sep"></div>
+
+                <form method="POST">
+                    {% if error %}
+                    <div class="err">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <div class="field">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="Enter username" autocomplete="off" required>
+                    </div>
+                    <div class="field">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Enter password" required>
+                    </div>
+
+                    <button type="submit" class="btn">
+                        Sign in
+                        <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

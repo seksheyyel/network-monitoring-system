@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Alerts — Threat Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='alerts.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-text">Network Monitoring</div>
+                <div class="logo-sub">Network Defense System</div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <span class="nav-icon">⊞</span><span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('alert') }}" class="nav-item active">
+                    <span class="nav-icon">⚠</span><span>Alerts</span>
+                </a>
+                <a href="{{ url_for('logs') }}" class="nav-item">
+                    <span class="nav-icon">📋</span><span>Audit Logs</span>
+                </a>
+
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <span class="nav-icon">⚙</span><span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="avatar">{{ user[0] | upper }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ user }}</div>
+                    <div class="user-role">Network Analyst</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">⏻</a>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <div class="page-title">Threat Alerts</div>
+                    <div class="page-sub">DETECTED NETWORK ACTIVITY</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-badge"><span class="live-dot"></span>Live</div>
+                    <div class="topbar-time" id="clock"></div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="DDoS Attack">DDoS</button>
+                <button class="filter-btn" data-filter="Port Scan">Port Scan</button>
+                <button class="filter-btn" data-filter="ARP Spoofing">ARP Spoofing</button>
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input class="search-input" id="searchInput" type="text" placeholder="Search IP, type, details…"
+                        autocomplete="off">
+                </div>
+                <button class="export-btn" id="exportBtn">⬇ Export CSV</button>
+                <button class="delete-all-btn" id="deleteAllBtn">🗑 Delete All</button>
+            </div>
+            <div class="result-count" id="resultCount"></div>
+
+            <div id="alert-feed"></div>
+            <div id="empty-state" class="empty-state" style="display:none;">
+                <div class="empty-icon">🛡</div>
+                <div class="empty-text">NO ACTIVE THREATS DETECTED</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /* ── Clock ── */
+        function updateClock() {
+            document.getElementById('clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        /* ── State ── */
+        let allAlerts = [];
+        let activeFilter = 'all';
+        let lastSnapshot = '';
+        let searchQuery = '';
+
+        /* ── Get filtered + searched list ── */
+        function getDisplayed() {
+            let list = activeFilter === 'all' ? allAlerts : allAlerts.filter(a => a.alert_type === activeFilter);
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                list = list.filter(a =>
+                    (a.source_ip && a.source_ip.toLowerCase().includes(q)) ||
+                    (a.alert_type && a.alert_type.toLowerCase().includes(q)) ||
+                    (a.timestamp && a.timestamp.toLowerCase().includes(q)) ||
+                    (a.details && JSON.stringify(a.details).toLowerCase().includes(q))
+                );
+            }
+            return list;
+        }
+
+        /* ── Build card HTML ── */
+        function buildCard(a) {
+            const d = a.details;
+            let typeClass = '', badgeHTML = '', detailsHTML = '', action = '';
+
+            if (a.alert_type === 'DDoS Attack') {
+                typeClass = 'ddos';
+                badgeHTML = `<span class="badge red">DDoS Attack</span>`;
+                detailsHTML = `
+                    <div class="detail-row"><span class="detail-label">Source IP</span><span class="detail-value mono">${a.source_ip}</span></div>
+                    <div class="detail-row"><span class="detail-label">Packets</span><span class="detail-value">${d.packets_in_window}</span></div>
+                    <div class="detail-row"><span class="detail-label">Rate</span><span class="detail-value">${d.rate_per_second} pkt/s</span></div>`;
+                action = d.action;
+            } else if (a.alert_type === 'Port Scan') {
+                typeClass = 'portscan';
+                badgeHTML = `<span class="badge orange">Port Scan</span>`;
+                const portChips = Array.isArray(d.ports)
+                    ? d.ports.map(p => `<span class="port-chip">${p}</span>`).join('')
+                    : d.ports;
+                detailsHTML = `
+                    <div class="detail-row"><span class="detail-label">Source IP</span><span class="detail-value mono">${a.source_ip}</span></div>
+                    <div class="detail-row"><span class="detail-label">Unique Ports</span><span class="detail-value">${d.unique_ports}</span></div>
+                    <div class="detail-row"><span class="detail-label">Ports</span><span class="detail-value"><div class="ports-wrap">${portChips}</div></span></div>`;
+                action = d.action;
+            } else if (a.alert_type === 'ARP Spoofing') {
+                typeClass = 'arp';
+                badgeHTML = `<span class="badge yellow">ARP Spoofing</span>`;
+                const att = Array.isArray(d.attacker_macs) ? d.attacker_macs.join(', ') : d.attacker_macs;
+                detailsHTML = `
+                    <div class="detail-row"><span class="detail-label">IP Address</span><span class="detail-value mono">${a.source_ip}</span></div>
+                    <div class="detail-row"><span class="detail-label">Trusted MAC</span><span class="detail-value mono">${d.trusted_mac}</span></div>
+                    <div class="detail-row"><span class="detail-label">Attacker MACs</span><span class="detail-value mono">${att}</span></div>`;
+                action = d.action;
+            }
+
+            const alertId = a.id || (a.timestamp + a.source_ip).replace(/\W/g, '');
+
+            return `
+            <div class="alert-card ${typeClass}" data-id="${alertId}">
+                <div class="alert-card-header">
+                    ${badgeHTML}
+                    <span class="alert-title">${a.alert_type}</span>
+                    <span class="alert-time">${a.timestamp}</span>
+                    <button class="card-delete-btn" data-id="${alertId}" title="Delete this alert">🗑</button>
+                </div>
+                <div class="alert-card-body">
+                    <p class="alert-desc">${d.description}</p>
+                    <div class="detail-grid">${detailsHTML}</div>
+                    <div class="action-box">
+                        <span>💡</span>
+                        <span><strong>Recommended:</strong> ${action}</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        /* ── Render feed ── */
+        function renderFeed(alerts) {
+            const snapshot = JSON.stringify(alerts) + searchQuery + activeFilter;
+            if (snapshot === lastSnapshot) return;
+            lastSnapshot = snapshot;
+
+            const feed = document.getElementById('alert-feed');
+            const empty = document.getElementById('empty-state');
+            const rc = document.getElementById('resultCount');
+
+            if (!alerts.length) {
+                feed.innerHTML = '';
+                empty.style.display = 'block';
+                rc.textContent = '';
+                return;
+            }
+            empty.style.display = 'none';
+            rc.textContent = `Showing ${alerts.length} result${alerts.length !== 1 ? 's' : ''}`;
+            feed.innerHTML = alerts.map(buildCard).join('');
+
+            /* ── Per-card delete ── */
+            feed.querySelectorAll('.card-delete-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const time = btn.closest('.alert-card').querySelector('.alert-time').textContent;
+                    if (!confirm(`Delete alert from ${time}?\nThis cannot be undone.`)) return;
+
+                    try {
+                        const res = await fetch(`/api/alerts/delete/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            lastSnapshot = '';
+                            await fetchAlerts();
+                        } else {
+                            alert(data.message || 'Failed to delete alert.');
+                        }
+                    } catch {
+                        // Fallback: remove locally
+                        allAlerts = allAlerts.filter(a => {
+                            const aid = a.id || (a.timestamp + a.source_ip).replace(/\W/g, '');
+                            return aid !== id;
+                        });
+                        lastSnapshot = '';
+                        renderFeed(getDisplayed());
+                    }
+                });
+            });
+        }
+
+        /* ── CSV Export ── */
+        function exportCSV() {
+            const alerts = getDisplayed();
+            if (!alerts.length) return;
+            const header = ['Timestamp', 'Source IP', 'Alert Type', 'Details'];
+            const rows = alerts.map(a => {
+                const d = a.details;
+                let details = '';
+                if (a.alert_type === 'DDoS Attack') details = `${d.packets_in_window} pkts @ ${d.rate_per_second} pkt/s`;
+                else if (a.alert_type === 'Port Scan') details = `${d.unique_ports} ports: ${Array.isArray(d.ports) ? d.ports.join(' ') : d.ports}`;
+                else if (a.alert_type === 'ARP Spoofing') details = `${d.trusted_mac} -> ${Array.isArray(d.attacker_macs) ? d.attacker_macs.join(' ') : d.attacker_macs}`;
+                return [a.timestamp, a.source_ip, a.alert_type, details].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+            });
+            const csv = [header.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const el = document.createElement('a');
+            el.href = url;
+            el.download = `threatmon-alerts-${new Date().toISOString().slice(0, 10)}.csv`;
+            el.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /* ── Delete All ── */
+        document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+            if (!allAlerts.length) return;
+            if (!confirm(`Delete all ${allAlerts.length} alert(s)?\nThis cannot be undone.`)) return;
+
+            try {
+                const res = await fetch('/api/alerts/delete-all', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    lastSnapshot = '';
+                    await fetchAlerts();
+                } else {
+                    alert(data.message || 'Failed to delete alerts.');
+                }
+            } catch {
+                // Fallback: clear locally
+                allAlerts = [];
+                lastSnapshot = '';
+                renderFeed(getDisplayed());
+            }
+        });
+
+        /* ── Search ── */
+        document.getElementById('searchInput').addEventListener('input', function () {
+            searchQuery = this.value.trim();
+            lastSnapshot = '';
+            renderFeed(getDisplayed());
+        });
+
+        /* ── Export ── */
+        document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+        /* ── Filter buttons ── */
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+                lastSnapshot = '';
+                renderFeed(getDisplayed());
+            });
+        });
+
+        /* ── Fetch alerts ── */
+        async function fetchAlerts() {
+            try {
+                const res = await fetch('/api/alerts');
+                const data = await res.json();
+                allAlerts = data.alerts || [];
+                renderFeed(getDisplayed());
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        fetchAlerts();
+        setInterval(fetchAlerts, 2000);
+    </script>
+</body>
+
+</html>

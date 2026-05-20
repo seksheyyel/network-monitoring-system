@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs — Network Monitoring System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='logs.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-text">Network Monitoring </div>
+                <div class="logo-sub">Network Defense System</div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <span class="nav-icon">⊞</span><span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('alert') }}" class="nav-item">
+                    <span class="nav-icon">⚠</span><span>Alerts</span>
+                </a>
+                <a href="{{ url_for('logs') }}" class="nav-item active">
+                    <span class="nav-icon">📋</span><span>Audit Logs</span>
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <span class="nav-icon">⚙</span><span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="avatar">{{ user[0] | upper }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ user }}</div>
+                    <div class="user-role">Network Analyst</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">⏻</a>
+            </div>
+        </aside>
+
+        <!-- ── MAIN ── -->
+        <main class="main">
+
+            <!-- Topbar -->
+            <div class="topbar">
+                <div>
+                    <div class="page-title">Audit Logs</div>
+                    <div class="page-sub">System Activity History</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-badge">
+                        <span class="live-dot"></span>Live
+                    </div>
+                    <div class="topbar-time" id="clock"></div>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="Login">Login</button>
+                <button class="filter-btn" data-filter="Logout">Logout</button>
+                <button class="filter-btn" data-filter="Delete Alert">Deleted Alerts</button>
+                <button class="filter-btn" data-filter="failed">Failed Attempts</button>
+
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input class="search-input" id="searchInput" type="text" placeholder="Search username, IP, action…"
+                        autocomplete="off">
+                </div>
+
+                <button class="export-btn" id="exportBtn">⬇ Export CSV</button>
+            </div>
+
+            <div class="result-count" id="resultCount"></div>
+
+            <!-- Table -->
+            <div class="table-wrap" id="tableWrap">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Action</th>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                            <th>Date &amp; Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-body"></tbody>
+                </table>
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+            <div id="empty-state" class="empty-state" style="display:none;">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">No Log Entries Found</div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        /* Clock */
+        function updateClock() {
+            document.getElementById('clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        /* State */
+        let allLogs = [];
+        let activeFilter = 'all';
+        let searchQuery = '';
+        let currentPage = 1;
+        const perPage = 20;
+
+        /* Escape HTML */
+        function esc(str) {
+            if (!str) return '—';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        /* Get filtered list */
+        function getFiltered() {
+            let list = allLogs;
+
+            if (activeFilter === 'failed') {
+                list = list.filter(l => l.status === 'failed');
+            } else if (activeFilter !== 'all') {
+                list = list.filter(l => l.action === activeFilter);
+            }
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                list = list.filter(l =>
+                    (l.username && l.username.toLowerCase().includes(q)) ||
+                    (l.action && l.action.toLowerCase().includes(q)) ||
+                    (l.ip_address && l.ip_address.toLowerCase().includes(q)) ||
+                    (l.status && l.status.toLowerCase().includes(q))
+                );
+            }
+
+            return list;
+        }
+
+        /* Build one row */
+        function buildRow(log) {
+            const badgeClass = log.status === 'success' ? 'success'
+                : log.status === 'warning' ? 'warning'
+                    : 'failed';
+            const badgeLabel = log.status === 'success' ? '✓ Success'
+                : log.status === 'warning' ? '⚡ Warning'
+                    : '✕ Failed';
+
+            return `<tr>
+                <td><span class="log-id">#${log.id}</span></td>
+                <td><span class="log-user">${esc(log.username)}</span></td>
+                <td><span class="log-action">${esc(log.action)}</span></td>
+                <td><span class="log-ip">${esc(log.ip_address)}</span></td>
+                <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+                <td><span class="log-ts">${esc(log.created_at)}</span></td>
+            </tr>`;
+        }
+
+        /* Render table */
+        function renderTable() {
+            const filtered = getFiltered();
+            const total = filtered.length;
+            const pages = Math.max(1, Math.ceil(total / perPage));
+            if (currentPage > pages) currentPage = 1;
+
+            const tbody = document.getElementById('log-body');
+            const empty = document.getElementById('empty-state');
+            const wrap = document.getElementById('tableWrap');
+            const rc = document.getElementById('resultCount');
+
+            if (!total) {
+                wrap.style.display = 'none';
+                empty.style.display = 'block';
+                rc.textContent = '';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            wrap.style.display = '';
+            empty.style.display = 'none';
+
+            const start = (currentPage - 1) * perPage;
+            const slice = filtered.slice(start, start + perPage);
+
+            rc.textContent = `Showing ${start + 1}–${start + slice.length} of ${total} log${total !== 1 ? 's' : ''}`;
+            tbody.innerHTML = slice.map(buildRow).join('');
+
+            renderPagination(pages);
+        }
+
+        /* Pagination */
+        function renderPagination(pages) {
+            const el = document.getElementById('pagination');
+            if (pages <= 1) { el.innerHTML = ''; return; }
+
+            let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+            for (let p = 1; p <= pages; p++) {
+                if (p === 1 || p === pages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+                    html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+                } else if (p === currentPage - 3 || p === currentPage + 3) {
+                    html += `<span class="page-info">…</span>`;
+                }
+            }
+
+            html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>`;
+            html += `<span class="page-info">of ${pages} pages</span>`;
+            el.innerHTML = html;
+        }
+
+        function goPage(p) {
+            const pages = Math.ceil(getFiltered().length / perPage);
+            if (p < 1 || p > pages) return;
+            currentPage = p;
+            renderTable();
+        }
+
+        /* Filter buttons */
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+                currentPage = 1;
+                renderTable();
+            });
+        });
+
+        /* Search */
+        document.getElementById('searchInput').addEventListener('input', function () {
+            searchQuery = this.value.trim();
+            currentPage = 1;
+            renderTable();
+        });
+
+        /* Export CSV */
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const list = getFiltered();
+            if (!list.length) return;
+            const header = ['Log ID', 'Username', 'Action', 'IP Address', 'Status', 'Date & Time'];
+            const rows = list.map(l => [
+                l.id, l.username, l.action, l.ip_address, l.status, l.created_at
+            ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+            const csv = [header.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        /* Fetch logs once on load */
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/logs?per_page=1000');
+                const data = await res.json();
+                allLogs = data.logs || [];
+                renderTable();
+            } catch (e) {
+                console.error('Failed to fetch logs:', e);
+            }
+        }
+
+        fetchLogs();
+    </script>
+</body>
+
+</html>

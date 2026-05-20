@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Dashboard —Network Monitoring System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-text">Network Monitoring</div>
+                <div class="logo-sub">Network Defense System</div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item active">
+                    <span class="nav-icon">⊞</span><span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('alert') }}" class="nav-item">
+                    <span class="nav-icon">⚠</span><span>Alerts</span>
+                </a>
+                <a href="{{ url_for('logs') }}" class="nav-item">
+                    <span class="nav-icon">📋</span><span>Audit Logs</span>
+                </a>
+
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <span class="nav-icon">⚙</span><span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="avatar">{{ user[0] | upper }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ user }}</div>
+                    <div class="user-role">Network Analyst</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">⏻</a>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <div class="page-title">Network Overview</div>
+                    <div class="page-sub">AUTOMATED THREAT DETECTION SYSTEM</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-badge"><span class="live-dot"></span>Live</div>
+                    <div class="topbar-time" id="clock"></div>
+                </div>
+            </div>
+
+            <div class="cards">
+                <div class="card c-red">
+                    <div class="card-label">Total Alerts</div>
+                    <div class="card-value red" id="stat-total">--</div>
+                    <div class="card-sub">All time</div>
+                </div>
+                <div class="card c-yellow">
+                    <div class="card-label">ARP Spoofing</div>
+                    <div class="card-value yellow" id="stat-arp">--</div>
+                    <div class="card-sub">Detected</div>
+                </div>
+                <div class="card c-red">
+                    <div class="card-label">DDoS Attacks</div>
+                    <div class="card-value red" id="stat-ddos">--</div>
+                    <div class="card-sub">Detected</div>
+                </div>
+                <div class="card c-orange">
+                    <div class="card-label">Port Scans</div>
+                    <div class="card-value orange" id="stat-portscan">--</div>
+                    <div class="card-sub">Detected</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Alert Trend — Last 24 Hours</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Threat Type Breakdown</span>
+                    </div>
+                    <div class="donut-wrap">
+                        <div class="donut-chart-container">
+                            <canvas id="donutChart" width="160" height="160"></canvas>
+                            <div class="donut-center">
+                                <div class="donut-total" id="donut-total">--</div>
+                                <div class="donut-label">TOTAL</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend" id="donut-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot red"></span>
+                                <div class="legend-info">
+                                    <div class="legend-name">DDoS Attack</div>
+                                    <div class="legend-stat"><span class="legend-count red" id="leg-ddos">--</span><span
+                                            class="legend-pct" id="leg-ddos-pct"></span></div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot orange"></span>
+                                <div class="legend-info">
+                                    <div class="legend-name">Port Scan</div>
+                                    <div class="legend-stat"><span class="legend-count orange"
+                                            id="leg-ps">--</span><span class="legend-pct" id="leg-ps-pct"></span></div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot yellow"></span>
+                                <div class="legend-info">
+                                    <div class="legend-name">ARP Spoofing</div>
+                                    <div class="legend-stat"><span class="legend-count yellow"
+                                            id="leg-arp">--</span><span class="legend-pct" id="leg-arp-pct"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Recent Threat Activity</span>
+                </div>
+                <div class="toolbar">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="DDoS Attack">DDoS</button>
+                    <button class="filter-btn" data-filter="Port Scan">Port Scan</button>
+                    <button class="filter-btn" data-filter="ARP Spoofing">ARP Spoofing</button>
+                    <div class="search-wrap">
+                        <span class="search-icon">⌕</span>
+                        <input class="search-input" id="searchInput" type="text" placeholder="Search IP, type, details…"
+                            autocomplete="off">
+                    </div>
+                    <button class="export-btn" id="exportBtn">⬇ Export CSV</button>
+                </div>
+                <div class="result-count" id="resultCount"></div>
+                <table class="threat-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alert-tbody">
+                        <tr>
+                            <td colspan="4" class="td-loading">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /* ── Clock ── */
+        function updateClock() {
+            document.getElementById('clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        /* ── Trend Chart ── */
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'DDoS', data: [], borderColor: '#ff4466', backgroundColor: 'rgba(255,68,102,.08)', tension: .4, fill: true, pointRadius: 2, borderWidth: 2 },
+                    { label: 'Port Scan', data: [], borderColor: '#ff8c42', backgroundColor: 'rgba(255,140,66,.07)', tension: .4, fill: true, pointRadius: 2, borderWidth: 2 },
+                    { label: 'ARP Spoofing', data: [], borderColor: '#ffd700', backgroundColor: 'rgba(255,215,0,.06)', tension: .4, fill: true, pointRadius: 2, borderWidth: 2 },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#555e72', font: { family: 'Space Mono', size: 10 }, boxWidth: 12, padding: 14 }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#555e72', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(26,32,48,.9)' } },
+                    y: { ticks: { color: '#555e72', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(26,32,48,.9)' }, beginAtZero: true }
+                }
+            }
+        });
+
+        /* ── Donut Chart ── */
+        const donutCtx = document.getElementById('donutChart').getContext('2d');
+        const donutChart = new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['DDoS Attack', 'Port Scan', 'ARP Spoofing'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['rgba(255,68,102,.85)', 'rgba(255,140,66,.85)', 'rgba(255,215,0,.85)'],
+                    borderColor: ['#ff4466', '#ff8c42', '#ffd700'],
+                    borderWidth: 1.5,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+                                return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                            }
+                        },
+                        bodyFont: { family: 'Space Mono', size: 11 },
+                        backgroundColor: '#0d1117',
+                        borderColor: '#1a2030',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+
+        /* ── State ── */
+        let allAlerts = [], activeFilter = 'all', lastCount = -1, searchQuery = '';
+
+        /* ── Get filtered + searched alerts ── */
+        function getDisplayed() {
+            let list = activeFilter === 'all' ? allAlerts : allAlerts.filter(a => a.alert_type === activeFilter);
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                list = list.filter(a =>
+                    (a.source_ip && a.source_ip.toLowerCase().includes(q)) ||
+                    (a.alert_type && a.alert_type.toLowerCase().includes(q)) ||
+                    (a.timestamp && a.timestamp.toLowerCase().includes(q)) ||
+                    (a.details && JSON.stringify(a.details).toLowerCase().includes(q))
+                );
+            }
+            return list;
+        }
+
+        /* ── Trend chart update ── */
+        function updateTrend(alerts) {
+            const now = new Date(), labels = [], dd = [], ps = [], arp = [];
+            for (let i = 23; i >= 0; i--) {
+                const h = new Date(now);
+                h.setHours(now.getHours() - i, 0, 0, 0);
+                labels.push(`${String(h.getHours()).padStart(2, '0')}:00`);
+                dd.push(0); ps.push(0); arp.push(0);
+            }
+            alerts.forEach(a => {
+                const diff = Math.floor((now - new Date(a.timestamp)) / 3600000);
+                const idx = 23 - diff;
+                if (idx < 0 || idx > 23) return;
+                if (a.alert_type === 'DDoS Attack') dd[idx]++;
+                if (a.alert_type === 'Port Scan') ps[idx]++;
+                if (a.alert_type === 'ARP Spoofing') arp[idx]++;
+            });
+            trendChart.data.labels = labels;
+            trendChart.data.datasets[0].data = dd;
+            trendChart.data.datasets[1].data = ps;
+            trendChart.data.datasets[2].data = arp;
+            trendChart.update();
+        }
+
+        /* ── Donut chart update ── */
+        function updateDonut(alerts) {
+            const ddos = alerts.filter(a => a.alert_type === 'DDoS Attack').length;
+            const ps = alerts.filter(a => a.alert_type === 'Port Scan').length;
+            const arp = alerts.filter(a => a.alert_type === 'ARP Spoofing').length;
+            const total = ddos + ps + arp;
+            donutChart.data.datasets[0].data = [ddos, ps, arp];
+            donutChart.update();
+            document.getElementById('donut-total').textContent = total || '--';
+            const pct = (n) => total > 0 ? Math.round(n / total * 100) + '%' : '0%';
+            document.getElementById('leg-ddos').textContent = ddos;
+            document.getElementById('leg-ddos-pct').textContent = pct(ddos);
+            document.getElementById('leg-ps').textContent = ps;
+            document.getElementById('leg-ps-pct').textContent = pct(ps);
+            document.getElementById('leg-arp').textContent = arp;
+            document.getElementById('leg-arp-pct').textContent = pct(arp);
+        }
+
+        /* ── Table ── */
+        function renderTable(alerts) {
+            const tbody = document.getElementById('alert-tbody');
+            const rc = document.getElementById('resultCount');
+            if (!alerts.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="td-loading">No alerts match this filter.</td></tr>`;
+                rc.textContent = '';
+                return;
+            }
+            rc.textContent = `Showing ${alerts.length} result${alerts.length !== 1 ? 's' : ''}`;
+            tbody.innerHTML = alerts.map(a => {
+                const d = a.details;
+                let badge = '', details = '';
+                if (a.alert_type === 'DDoS Attack') {
+                    badge = `<span class="badge red">DDoS</span>`;
+                    details = `${d.packets_in_window} pkts @ ${d.rate_per_second} pkt/s`;
+                } else if (a.alert_type === 'Port Scan') {
+                    badge = `<span class="badge orange">Port Scan</span>`;
+                    const pl = Array.isArray(d.ports) ? d.ports.slice(0, 8).join(', ') : d.ports;
+                    details = `${d.unique_ports} ports — ${pl}${d.ports?.length > 8 ? '…' : ''}`;
+                } else if (a.alert_type === 'ARP Spoofing') {
+                    badge = `<span class="badge yellow">ARP Spoof</span>`;
+                    const att = Array.isArray(d.attacker_macs) ? d.attacker_macs.join(', ') : d.attacker_macs;
+                    details = `${d.trusted_mac} → ${att}`;
+                }
+                return `<tr class="row-new">
+                    <td class="ts">${a.timestamp}</td>
+                    <td class="ip">${a.source_ip}</td>
+                    <td>${badge}</td>
+                    <td class="td-details">${details}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        /* ── CSV Export ── */
+        function exportCSV() {
+            const alerts = getDisplayed();
+            if (!alerts.length) return;
+            const header = ['Timestamp', 'Source IP', 'Alert Type', 'Details'];
+            const rows = alerts.map(a => {
+                const d = a.details;
+                let details = '';
+                if (a.alert_type === 'DDoS Attack') details = `${d.packets_in_window} pkts @ ${d.rate_per_second} pkt/s`;
+                else if (a.alert_type === 'Port Scan') details = `${d.unique_ports} ports: ${Array.isArray(d.ports) ? d.ports.join(' ') : d.ports}`;
+                else if (a.alert_type === 'ARP Spoofing') details = `${d.trusted_mac} -> ${Array.isArray(d.attacker_macs) ? d.attacker_macs.join(' ') : d.attacker_macs}`;
+                return [a.timestamp, a.source_ip, a.alert_type, details].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+            });
+            const csv = [header.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `threatmon-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+        /* ── Search ── */
+        document.getElementById('searchInput').addEventListener('input', function () {
+            searchQuery = this.value.trim();
+            renderTable(getDisplayed());
+        });
+
+        /* ── Filter buttons ── */
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+                renderTable(getDisplayed());
+            });
+        });
+
+        /* ── Fetch every 5s ── */
+        async function fetchAlerts() {
+            try {
+                const res = await fetch('/api/alerts');
+                const data = await res.json();
+                if (!data.alerts) return;
+                allAlerts = data.alerts;
+                if (allAlerts.length === lastCount) return;
+                lastCount = allAlerts.length;
+
+                document.getElementById('stat-total').textContent = allAlerts.length;
+                document.getElementById('stat-arp').textContent = allAlerts.filter(a => a.alert_type === 'ARP Spoofing').length;
+                document.getElementById('stat-ddos').textContent = allAlerts.filter(a => a.alert_type === 'DDoS Attack').length;
+                document.getElementById('stat-portscan').textContent = allAlerts.filter(a => a.alert_type === 'Port Scan').length;
+
+                updateTrend(allAlerts);
+                updateDonut(allAlerts);
+                renderTable(getDisplayed());
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        fetchAlerts();
+        setInterval(fetchAlerts, 5000);
+    </script>
+</body>
+
+</html>
